@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 # Toolbox Name:     PDSTools.pyt
-# Description:      PDS Tools is a Python toolbox written for ArcGIS Desktop, which includes custom tools that can perform
-#                   basic data management tasks with ESRI geodatabases and MXD files.
-# Dependencies:     arcpy, ArcGIS Desktop 10.x, Python 2.7
-# Author:           Jesse Langdon
+# Description:      PDS Tools is a Python toolbox written for ArcGIS Pro, which includes custom tools that can perform
+#                   basic data management tasks with ESRI geodatabases and APRX files.
+# Dependencies:     arcpy, ArcGIS Pro 3.x, Python 3.x
+# Author:           Jesse Langdon, Principal GIS Analyst
 # Org:              Snohomish County Planning and Development Services (PDS)
-# Date Created:     8/24/2022
-# Date Modified:    11/14/2022
+# Date Created:     9/25/2023
+# Date Modified:    9/25/2023
 
 
 # Import modules
@@ -25,15 +25,15 @@ class Toolbox(object):
         self.alias = ""
 
         # List of tool classes associated with this toolbox
-        self.tools = [MXDInventoryTool, GDBInventoryTool, ReplicaInventoryTool, GetDomainsTool, CleanGeodatabaseTool]
+        self.tools = [APRXInventoryTool, GDBInventoryTool, ReplicaInventoryTool, GetDomainsTool, CleanGeodatabaseTool]
 
 
-class MXDInventoryTool(object):
+class APRXInventoryTool(object):
     def __init__(self):
-        """MXD Inventory."""
-        self.label = "MXD Inventory"
-        self.description = "The MXD Inventory Tool will find all MXDs in a user-specified folder (top level) and " \
-                           "return a CSV file with details on each layer found in each MXD."
+        """ARPX Inventory."""
+        self.label = "APRX Inventory"
+        self.description = "The APRX Inventory Tool will find all APRX files in a user-specified folder (top level) " \
+                           "and return a CSV file with details on layers found in each APRX."
         self.canRunInBackground = True
 
     def getParameterInfo(self):
@@ -74,7 +74,7 @@ class MXDInventoryTool(object):
 
     def execute(self, parameters, messages):
         """The source code of the tool."""
-        mxd_inventory(parameters[0].valueAsText, parameters[1].valueAsText)
+        aprx_inventory(parameters[0].valueAsText, parameters[1].valueAsText)
         return
 
     def postExecute(self, parameters):
@@ -303,25 +303,26 @@ class GetDomainsTool(object):
         return
 
 
-def mxd_inventory(input_workspace, output_csv):
-    """This function performs the processing for the MXD Inventory tool.
-    :param input_workspace: directory with MXDs to be searched. Subdirectories are not searched.
-    :param output_csv: name of the output CSV file with found layer information as rows.
+def aprx_inventory(input_workspace, output_csv):
+    """This function performs the processing for the APRX Inventory tool.
+    :param input_workspace: directory with APRX files to be searched. Subdirectories are not searched.
+    :param output_csv: name of the output CSV file with all found layer information as rows.
     """
     # Initiate variables
-    mxd_list = []
+    aprx_list = []
     layer_list = []
 
     # get list of all MXDs in user-specified filepath
-    arcpy.AddMessage("Found the following MXD files in {}:".format(input_workspace))
+    arcpy.AddMessage("Found the following APRX files in {}:".format(input_workspace))
     for file in os.listdir(input_workspace):
-        if file.endswith(".mxd"):
+        if file.endswith(".aprx"):
             mxd_path = os.path.join(input_workspace, file)
             arcpy.AddMessage("    ...{}".format(file))
-            mxd_list.append(mxd_path)
+            aprx_list.append(mxd_path)
 
-    # open each MXD and find layers
-    for m in mxd_list:
+    # FIXME ··· THIS NEEDS TO BE REWRITTEN FOR PRO AND APRX FILES
+    # open each APRX file and find layers
+    for m in aprx_list:
         arcpy.AddMessage("Finding layers in {}...".format(m))
         mxd = arcpy.mapping.MapDocument(m)
         for df in arcpy.mapping.ListDataFrames(mxd, "*"):
