@@ -6,14 +6,12 @@
 # Author:           Jesse Langdon, Principal GIS Analyst
 # Org:              Snohomish County Planning and Development Services (PDS)
 # Date Created:     9/25/2023
-# Date Modified:    9/25/2023
+# Date Modified:    9/26/2023
 
 
 # Import modules
 import os
 import csv
-import sys
-
 import arcpy
 
 
@@ -25,7 +23,7 @@ class Toolbox(object):
         self.alias = ""
 
         # List of tool classes associated with this toolbox
-        self.tools = [APRXInventoryTool, GDBInventoryTool, ReplicaInventoryTool, GetDomainsTool, CleanGeodatabaseTool]
+        self.tools = [APRXInventoryTool, GDBInventoryTool, GetDomainsTool, CleanGeodatabaseTool]
 
 
 class APRXInventoryTool(object):
@@ -33,7 +31,7 @@ class APRXInventoryTool(object):
         """ARPX Inventory."""
         self.label = "APRX Inventory"
         self.description = "The APRX Inventory Tool will find all APRX files in a user-specified folder (top level) " \
-                           "and return a CSV file with details on layers found in each APRX."
+                           "and write a CSV file with details on layers found in each APRX."
         self.canRunInBackground = True
 
     def getParameterInfo(self):
@@ -130,61 +128,6 @@ class GDBInventoryTool(object):
     def execute(self, parameters, messages):
         """The source code of the tool."""
         gdb_inventory(parameters[0].valueAsText, parameters[1].valueAsText)
-        return
-
-    def postExecute(self, parameters):
-        """This method takes place after outputs are processed and
-        added to the display."""
-        return
-
-
-class ReplicaInventoryTool(object):
-    def __init__(self):
-        """Replica Inventory class"""
-        self.label = "Replica Inventory"
-        self.description = "The Replica Inventory Tool searches through a user-specified enterprise geodatabase and " \
-                           "returns a CSV file with details on each sync replica object found in the geodatabase."
-        self.canRunInBackground = True
-
-    def getParameterInfo(self):
-        """Define parameter definitions"""
-        param0 = arcpy.Parameter(
-            displayName="Input SDE connection",
-            name="input_sde_conn",
-            datatype="DEWorkspace",
-            parameterType="Required",
-            direction="Input")
-        param0.filter.list = ['Remote Database']
-
-        param1 = arcpy.Parameter(
-            displayName="Output CSV file",
-            name="output_csv",
-            datatype="DEFile",
-            parameterType="Required",
-            direction="Output")
-        param1.filter.list = ['txt', 'csv']
-
-        params = [param0, param1]
-        return params
-
-    def isLicensed(self):
-        """Set whether tool is licensed to execute."""
-        return True
-
-    def updateParameters(self, parameters):
-        """Modify the values and properties of parameters before internal
-        validation is performed. This method is called whenever a parameter
-        has been changed."""
-        return
-
-    def updateMessages(self, parameters):
-        """Modify the messages created by internal validation for each tool
-        parameter. This method is called after internal validation."""
-        return
-
-    def execute(self, parameters, messages):
-        """The source code of the tool."""
-        replica_inventory(parameters[0].valueAsText, parameters[1].valueAsText)
         return
 
     def postExecute(self, parameters):
@@ -369,37 +312,6 @@ def gdb_inventory(input_workspace, output_csv):
     return
 
 
-def replica_inventory(input_workspace, output_csv):
-    """This function performs the processing for the Replica Inventory tool.
-    :param input_workspace: SDE connection to the enterprise geodatabase to be examined.
-    :param output_csv: name of the output CSV file with dataset information as rows.
-    """
-    # initiate variables
-    csv_header = ["Name", "Owner", "Role", "Type", "IsParent", "IsSender", "LastReceiveDate", "LastSendDate"]
-    list_replica = []
-
-    # Call the ListReplicas method
-    replicas = arcpy.da.ListReplicas(input_workspace)
-
-    for r in replicas:
-        # get receive/send dates if is parent/sender (respectively)
-        if r.isParent == True:
-            lastReceiveDate = 'N/A'
-        else:
-            lastReceiveDate = r.lastReceive
-        if r.isSender == False:
-            lastSendDate = 'N/A'
-        else:
-            lastSendDate = r.lastSend
-        # append the replica properties to replica list
-        r_row = [r.name, r.owner, r.role, r.type, r.isParent, r.isSender, lastReceiveDate, lastSendDate]
-        list_replica.append(r_row)
-
-    csv_writer(output_csv, csv_header, list_replica)
-    arcpy.AddMessage('{} was successfully processed'.format(input_workspace.split('.')[-1]))
-    return
-
-
 def clean_gdb(input_workspace, log_file):
     '''
     This function deletes all objects from a geodatabase, including feature datasets, feature classes, tables, and
@@ -542,7 +454,7 @@ def does_not_include_string(filepath):
     pattern = r"(PAG|BAK)"
     return not bool(re.search(pattern, filepath))
 
-# # TEST
-input_workspace = r"\\snoco\gis\plng\carto\Map Services\APRX\legacy"
-test_csv = r"C:\Users\SCDJ2L\dev\PDSTools\ArcGISPro\test\aprx_layers.csv"
-aprx_inventory(input_workspace, test_csv)
+# TEST
+# input_workspace = r"\\snoco\gis\plng\carto\Map Services\APRX\legacy"
+# test_csv = r"C:\Users\SCDJ2L\dev\PDSTools\ArcGISPro\test\aprx_layers.csv"
+# aprx_inventory(input_workspace, test_csv)
