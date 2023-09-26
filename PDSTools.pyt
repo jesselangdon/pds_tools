@@ -141,7 +141,7 @@ class CleanGeodatabaseTool(object):
         """Replica Inventory class"""
         self.label = "Clean Geodatabase"
         self.description = "The Clean Geodatabase Tool removes datasets, feature classes, rasters, and table objects" \
-                           "from a user-supplied geodatabase."
+                           "from a user-supplied geodatabase. PLEASE USE WITH CAUTION!"
         self.canRunInBackground = True
 
     def getParameterInfo(self):
@@ -294,7 +294,7 @@ def gdb_inventory(input_workspace, output_csv):
             input_workspace,
             topdown=True,
             followlinks=True,
-            datatype="FeatureClass"):
+            datatype=["FeatureClass", "RasterDataset", "Table"]):
         for filepath in filepaths:
             try:
                 arcpy.AddMessage('Processing {0}...'.format(filepath))
