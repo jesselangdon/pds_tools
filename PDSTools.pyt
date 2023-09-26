@@ -309,39 +309,31 @@ def aprx_inventory(input_workspace, output_csv):
     :param output_csv: name of the output CSV file with all found layer information as rows.
     """
     # Initiate variables
-    aprx_list = []
     layer_list = []
 
     # get list of all MXDs in user-specified filepath
     arcpy.AddMessage("Found the following APRX files in {}:".format(input_workspace))
-    for file in os.listdir(input_workspace):
-        if file.endswith(".aprx"):
-            mxd_path = os.path.join(input_workspace, file)
-            arcpy.AddMessage("    ...{}".format(file))
-            aprx_list.append(mxd_path)
+    aprx_list = list_aprx_files(input_workspace)
 
-    # FIXME ··· THIS NEEDS TO BE REWRITTEN FOR PRO AND APRX FILES
     # open each APRX file and find layers
-    for m in aprx_list:
-        arcpy.AddMessage("Finding layers in {}...".format(m))
-        mxd = arcpy.mapping.MapDocument(m)
-        for df in arcpy.mapping.ListDataFrames(mxd, "*"):
-            lyrs = arcpy.mapping.ListLayers(mxd, "", df)
-            for lyr in lyrs:
-                if lyr.supports("dataSource"):
-                    if lyr.isBroken:
-                        status = "broken"
-                    else:
-                        status = "working"
-                    mxd_shortname = m.split("\\")[-1]
-                    layer_list_row = [m, mxd_shortname, lyr.name, lyr.datasetName, status]
-                    layer_list.append(layer_list_row)
-                    arcpy.AddMessage("    ...{}".format(lyr.name))
-
+    for aprx_file in aprx_list:
+        arcpy.AddMessage(f"Finding layers in {aprx_file}...")
+        aprx = arcpy.mp.ArcGISProject(aprx_file)
+        for map in aprx.listMaps():
+            for lyr in map.listLayers():
+                if lyr.supports("DATASOURCE"):
+                    if lyr.name not in layer_list:
+                        if lyr.isBroken != True:
+                            status = "working"
+                        else:
+                            status = "broken"
+                        layer_list_row = [aprx_file, map.name, lyr.name, lyr.connectionProperties['dataset'], status]
+                        layer_list.append(layer_list_row)
+                        arcpy.AddMessage(f"    ...{lyr.name}")
     # write to a CSV file
-    csv_header = ["mxd_fullpath", "mxd_shortname", "layer_name", "data_source", "layer_status"]
+    csv_header = ["aprx_filepath", "map_name", "layer_name", "data_source", "layer_status"]
     csv_writer(output_csv, csv_header, layer_list)
-    arcpy.AddMessage('{} was successfully processed'.format(input_workspace.split('.')[-1]))
+    arcpy.AddMessage('The {} directory was successfully processed!'.format(input_workspace.split('.')[-1]))
     return
 
 
@@ -509,11 +501,11 @@ def get_domains(input_workspace, output_csv):
     csv_writer(output_path=output_csv, header_list = header, row_list=result_list)
     return
 
-
+# Helper functions
 def csv_writer(output_path, header_list, row_list):
     # write to a CSV file
     csv_header = header_list
-    with open(output_path, 'wb') as csv_file:
+    with open(output_path, 'w', newline='') as csv_file:
         writer = csv.writer(csv_file)
         writer.writerow(csv_header)
         for row in row_list:
@@ -523,8 +515,34 @@ def csv_writer(output_path, header_list, row_list):
     return
 
 
+def list_dirs(rootdir):
+    list_dir = []
+    for rootdir, dirs, files in os.walk(rootdir):
+        for subdir in dirs:
+            list_dir.append(os.path.join(rootdir, subdir))
+    return list_dir
+
+
+def list_aprx_files(rootdir):
+    aprx_list = []
+    list_dir = list_dirs(rootdir)
+    for dir in list_dir:
+        for file in os.listdir(dir):
+            no_PAG_or_BAK = does_not_include_string(file) # TODO - a temporary measure, until we reorganize APRX files
+            if file.endswith(".aprx") and no_PAG_or_BAK:
+                aprx_path = os.path.join(dir, file)
+                arcpy.AddMessage("Found {}...".format(os.path.basename(aprx_path)))
+                aprx_list.append(aprx_path)
+    return aprx_list
+
+
+def does_not_include_string(filepath):
+    '''This function is to be used temporarily until the aprx files are reorganized'''
+    import re
+    pattern = r"(PAG|BAK)"
+    return not bool(re.search(pattern, filepath))
+
 # # TEST
-# input_filepath = r"\\snoco\gis\plng\GDB_connections\SCD_GDBA@SCD_GIS_PROD.SDE"
-# # input_filepath = r"\\snoco\gis\plng\carto\__PDSGIS_GDBUpdate\SDE_connections\2022\PRO_Connection\SCD_GDBA@SCD_GIS_PROD_TEST.sde"
-# output_csv = r"C:\Users\SCDJ2L\dev\PDSTools\test\PROD_2016_inventory.csv"
-# gdb_inventory(input_filepath, output_csv)
+input_workspace = r"\\snoco\gis\plng\carto\Map Services\APRX\legacy"
+test_csv = r"C:\Users\SCDJ2L\dev\PDSTools\ArcGISPro\test\aprx_layers.csv"
+aprx_inventory(input_workspace, test_csv)
