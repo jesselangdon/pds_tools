@@ -85,19 +85,19 @@ class GDBInventoryTool(object):
     def __init__(self):
         """GDB Inventory class"""
         self.label = "GDB Inventory"
-        self.description = "The GDB Inventory Tool searches through a user-specified enterprise geodatabase and " \
-                           "returns a CSV file with details on each layer found in the geodatabase."
+        self.description = "The GDB Inventory Tool searches through a user-specified enterprise or file geodatabase " \
+                           "and returns a CSV file with details on each layer found in the geodatabase."
         self.canRunInBackground = True
 
     def getParameterInfo(self):
         """Define parameter definitions"""
         param0 = arcpy.Parameter(
-            displayName="Input SDE connection",
-            name="input_sde_conn",
+            displayName="Input geodatabase",
+            name="input_gdb",
             datatype="DEWorkspace",
             parameterType="Required",
             direction="Input")
-        param0.filter.list = ['Remote Database']
+        param0.filter.list = ['Remote Database', 'Local Database']
 
         param1 = arcpy.Parameter(
             displayName="Output CSV file",
@@ -427,24 +427,23 @@ def csv_writer(output_path, header_list, row_list):
     return
 
 
-def list_dirs(rootdir):
-    list_dir = []
+def list_file(rootdir):
+    list_file = []
     for rootdir, dirs, files in os.walk(rootdir):
-        for subdir in dirs:
-            list_dir.append(os.path.join(rootdir, subdir))
-    return list_dir
+        for file in files:
+            list_file.append(os.path.join(rootdir, file))
+    return list_file
 
 
 def list_aprx_files(rootdir):
     aprx_list = []
-    list_dir = list_dirs(rootdir)
-    for dir in list_dir:
-        for file in os.listdir(dir):
-            no_PAG_or_BAK = does_not_include_string(file) # TODO - a temporary measure, until we reorganize APRX files
-            if file.endswith(".aprx") and no_PAG_or_BAK:
-                aprx_path = os.path.join(dir, file)
-                arcpy.AddMessage("Found {}...".format(os.path.basename(aprx_path)))
-                aprx_list.append(aprx_path)
+    list_files = list_file(rootdir)
+    for file in list_files:
+        no_PAG_or_BAK = does_not_include_string(file) # TODO - a temporary measure, until we reorganize APRX files
+        if file.endswith(".aprx") and no_PAG_or_BAK:
+            aprx_path = os.path.join(rootdir, file)
+            arcpy.AddMessage("Found {}...".format(os.path.basename(aprx_path)))
+            aprx_list.append(aprx_path)
     return aprx_list
 
 
@@ -455,6 +454,6 @@ def does_not_include_string(filepath):
     return not bool(re.search(pattern, filepath))
 
 # TEST
-# input_workspace = r"\\snoco\gis\plng\carto\Map Services\APRX\legacy"
-# test_csv = r"C:\Users\SCDJ2L\dev\PDSTools\ArcGISPro\test\aprx_layers.csv"
+# input_workspace = r"\\snoco\gis\plng\carto\Map Services\APRX\TEST"
+# test_csv = r"\\snoco\gis\plng\carto\Map Services\APRX\test_output.txt"
 # aprx_inventory(input_workspace, test_csv)
